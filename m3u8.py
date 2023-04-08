@@ -142,7 +142,7 @@ class M3U8(object):
             with open(file_path, 'wb') as f:
                 f.write(response.content)
                 bar_num = int(number / total * 25)
-                percent = round(number / total * 100, 2)
+                percent = bar_num * 4
                 print('\r[{}/{}][{}{}]{}%'.format(number, total, '#' * bar_num,
                                                   '.' * (25 - bar_num), percent), end='')
 
