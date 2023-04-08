@@ -13,23 +13,28 @@ class M3U8(object):
     def __init__(self, m3u8_url):
         self.m3u8_url = m3u8_url
         self.temp_dir = 'temp'
-        self.output = 'm3u8.mp4'
+        self.output = 'C:/Users/DELL/Downloads/m3u8.mp4'
         self.is_crypt = False
         self.to_crack = None
         self.session = requests.Session()
         self.headers = {'User-Agent': UserAgent().random}
 
-    def get_urls(self, url, end):
+    def get_urls(self, url):
         """
         获取response中的urls, keys
         :param url: requests请求的url地址 (原m3u8_url和解析后m3u8_url)
-        :param end: 以'.m3u8' | '.ts' 结尾筛选组成list
         :return: 返回list, keys
         """
         response = self.session.get(url, headers=self.headers)
         lines = response.text.strip().split('\n')
-        urls = [line for line in lines if line.endswith(end)]
-        keys = [line for line in lines if line.startswith('#EXT-X-KEY')]
+        urls, keys = [], []
+        for line in lines:
+            if line.endswith('.ts'):
+                urls.append(line)
+            elif line.endswith('.m3u8'):
+                urls.append(line)
+            elif line.startswith('#EXT-X-KEY'):
+                keys.append(line)
         return urls, keys
 
     def is_crack(self, m3u8_url, keys):
@@ -85,14 +90,20 @@ class M3U8(object):
         :return: ts_list
         """
         print('\rparse m3u8 url...', end='')
-        tail_url = self.get_urls(self.m3u8_url, '.m3u8')[0][0]
-        m3u8_url = M3U8.parse_url(self.m3u8_url, tail_url)[0]
+        resp_tuple = self.get_urls(self.m3u8_url)
+        urls = resp_tuple[0]
+        if len(urls) == 1:
+            m3u8_url = M3U8.parse_url(self.m3u8_url, urls[0])[0]
+            m3u8_resp_tuple = self.get_urls(m3u8_url)
+            ts_list = m3u8_resp_tuple[0]
+        else:
+            m3u8_url = self.m3u8_url
+            m3u8_resp_tuple = resp_tuple
+            ts_list = urls
         print('\r' + 'parse m3u8 url'.ljust(36, '.') + 'done\n', end='')
-        print('\rfetch ts url...', end='')
-        m3u8_resp_tuple = self.get_urls(m3u8_url, '.ts')
-        ts_list = m3u8_resp_tuple[0]
         keys = m3u8_resp_tuple[1]
         self.is_crack(m3u8_url, keys)
+        print('\rfetch ts url...', end='')
         ts0 = ts_list[0]
         ts_urls = []
         if ts0.startswith('http'):
