@@ -13,7 +13,7 @@ class M3U8(object):
     def __init__(self, m3u8_url):
         self.m3u8_url = m3u8_url
         self.temp_dir = 'temp'
-        self.output = 'C:/Users/DELL/Downloads/m3u8.mp4'
+        self.output = 'm3u8.mp4'
         self.is_crypt = False
         self.to_crack = None
         self.session = requests.Session()
