@@ -10,7 +10,7 @@ from fake_useragent import UserAgent
 
 
 class M3U8(object):
-    def __init__(self, m3u8_url):
+    def __init__(self, m3u8_url: str):
         self.m3u8_url = m3u8_url
         self.temp_dir = 'temp'
         self.output = 'm3u8.mp4'
@@ -19,7 +19,7 @@ class M3U8(object):
         self.session = requests.Session()
         self.headers = {'User-Agent': UserAgent().random}
 
-    def get_urls(self, url):
+    def get_urls(self, url: str) -> tuple:
         """
         获取response中的urls, keys
         :param url: requests请求的url地址 (原m3u8_url和解析后m3u8_url)
@@ -37,7 +37,7 @@ class M3U8(object):
                 keys.append(line)
         return urls, keys
 
-    def is_crack(self, m3u8_url, keys):
+    def is_crack(self, m3u8_url: str, keys: list):
         """
         判断是否为加密视频
         :param m3u8_url: m3u8_url
@@ -59,7 +59,7 @@ class M3U8(object):
             print('\r' + 'start crack'.ljust(36, '.') + 'done\n', end='')
 
     @staticmethod
-    def parse_url(m3u8_url, tail_url):
+    def parse_url(m3u8_url: str, tail_url: str) -> tuple:
         """
         解析单行正确的url
         :param m3u8_url: 请求的地址,用来获取基准url
@@ -84,9 +84,9 @@ class M3U8(object):
                 flag = 0
         return url, flag, head_url, end_with_str
 
-    def get_ts_urls(self):
+    def get_ts_urls(self) -> list:
         """
-        获取ts地址列表
+        获取ts_url列表
         :return: ts_list
         """
         print('\rparse m3u8 url...', end='')
@@ -128,7 +128,7 @@ class M3U8(object):
         print('\r' + 'fetch ts url'.ljust(36, '.') + 'done\n', end='')
         return ts_urls
 
-    def download(self, url, file_path, number, total):
+    def download(self, url: str, file_path: str, number: int, total: int):
         """
         下载单个文件
         :param url: 文件url位置
@@ -146,7 +146,7 @@ class M3U8(object):
                 print('\r[{}/{}][{}{}]{}%'.format(number, total, '#' * bar_num,
                                                   '.' * (25 - bar_num), percent), end='')
 
-    def thread_pool(self, urls):
+    def thread_pool(self, urls: list):
         """
         开启线程池下载ts_list
         :param urls: ts文件 url list
