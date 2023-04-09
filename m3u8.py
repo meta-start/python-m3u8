@@ -19,23 +19,15 @@ class M3U8(object):
         self.session = requests.Session()
         self.proxy = proxy
 
-    def get_response(self, url: str, **kwargs):
-        """
-        获取响应resp
-        :param url: 请求的url地址
-        :param kwargs:
-        :return:
-        """
+    def set_session_property(self):
         headers = {'User-Agent': UserAgent().random}
+        self.session.headers.update(headers)
         if self.proxy:
             proxy_list = self.proxy.split('://')
             protocol = proxy_list[0]
             ip_port = proxy_list[1]
             proxies = {f'{protocol}': f'{protocol}://{ip_port}'}
-            resp = self.session.get(url, headers=headers, proxies=proxies)
-        else:
-            resp = self.session.get(url, headers=headers, **kwargs)
-        return resp
+            self.session.proxies.update(proxies)
 
     def get_urls(self, url: str) -> tuple:
         """
@@ -43,7 +35,7 @@ class M3U8(object):
         :param url: requests请求的url地址 (原m3u8_url和解析后m3u8_url)
         :return: 返回list, keys
         """
-        response = self.get_response(url)
+        response = self.session.get(url)
         lines = response.text.strip().split('\n')
         urls, keys = [], []
         for line in lines:
@@ -68,7 +60,7 @@ class M3U8(object):
             ext_x_key = keys[0]
             uri = re.search('URI=\"(.*?)\"', ext_x_key).group(1)
             key_url = M3U8.parse_url(m3u8_url, uri)[0]
-            key = self.get_response(key_url).content
+            key = self.session.get(key_url).content
             if re.search('IV=(.*)', ext_x_key):
                 iv = re.search('IV=(.*)', ext_x_key).group(1).replace('0x', "")[:16].encode()
             else:
@@ -155,7 +147,7 @@ class M3U8(object):
         :param total: 总数
         :return:
         """
-        response = self.get_response(url)
+        response = self.session.get(url)
         if response.status_code == 200:
             with open(file_path, 'wb') as f:
                 f.write(response.content)
@@ -199,6 +191,7 @@ class M3U8(object):
         print('\r' + 'merge ts'.ljust(36, '.') + 'done\n', end='')
 
     def main(self):
+        self.set_session_property()
         ts_urls = self.get_ts_urls()
         self.thread_pool(ts_urls)
         self.merge_ts()
