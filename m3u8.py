@@ -27,11 +27,11 @@ class M3U8(object):
         :return:
         """
         headers = {'User-Agent': UserAgent().random}
-        proxy_list = self.proxy.split('://')
-        protocol = proxy_list[0]
-        ip_port = proxy_list[1]
-        proxies = {f'{protocol}': f'{protocol}://{ip_port}'}
         if self.proxy:
+            proxy_list = self.proxy.split('://')
+            protocol = proxy_list[0]
+            ip_port = proxy_list[1]
+            proxies = {f'{protocol}': f'{protocol}://{ip_port}'}
             resp = self.session.get(url, headers=headers, proxies=proxies)
         else:
             resp = self.session.get(url, headers=headers, **kwargs)
