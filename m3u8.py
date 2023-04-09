@@ -10,14 +10,32 @@ from fake_useragent import UserAgent
 
 
 class M3U8(object):
-    def __init__(self, m3u8_url: str):
+    def __init__(self, m3u8_url, proxy):
         self.m3u8_url = m3u8_url
         self.temp_dir = 'temp'
         self.output = 'm3u8.mp4'
         self.is_crypt = False
         self.to_crack = None
         self.session = requests.Session()
-        self.headers = {'User-Agent': UserAgent().random}
+        self.proxy = proxy
+
+    def get_response(self, url: str, **kwargs):
+        """
+        获取响应resp
+        :param url: 请求的url地址
+        :param kwargs:
+        :return:
+        """
+        headers = {'User-Agent': UserAgent().random}
+        proxy_list = self.proxy.split('://')
+        protocol = proxy_list[0]
+        ip_port = proxy_list[1]
+        proxies = {f'{protocol}': f'{protocol}://{ip_port}'}
+        if self.proxy:
+            resp = self.session.get(url, headers=headers, proxies=proxies)
+        else:
+            resp = self.session.get(url, headers=headers, **kwargs)
+        return resp
 
     def get_urls(self, url: str) -> tuple:
         """
@@ -25,7 +43,7 @@ class M3U8(object):
         :param url: requests请求的url地址 (原m3u8_url和解析后m3u8_url)
         :return: 返回list, keys
         """
-        response = self.session.get(url, headers=self.headers)
+        response = self.get_response(url)
         lines = response.text.strip().split('\n')
         urls, keys = [], []
         for line in lines:
@@ -50,7 +68,7 @@ class M3U8(object):
             ext_x_key = keys[0]
             uri = re.search('URI=\"(.*?)\"', ext_x_key).group(1)
             key_url = M3U8.parse_url(m3u8_url, uri)[0]
-            key = self.session.get(key_url, headers=self.headers).content
+            key = self.get_response(key_url).content
             if re.search('IV=(.*)', ext_x_key):
                 iv = re.search('IV=(.*)', ext_x_key).group(1).replace('0x', "")[:16].encode()
             else:
@@ -137,7 +155,7 @@ class M3U8(object):
         :param total: 总数
         :return:
         """
-        response = self.session.get(url, headers=self.headers)
+        response = self.get_response(url)
         if response.status_code == 200:
             with open(file_path, 'wb') as f:
                 f.write(response.content)
@@ -189,5 +207,6 @@ class M3U8(object):
 
 if __name__ == '__main__':
     m3u8_link = input('m3u8 url:')
-    m3u8 = M3U8(m3u8_url=m3u8_link)
+    proxy_server = input('protocol://ip:port:')
+    m3u8 = M3U8(m3u8_url=m3u8_link, proxy=proxy_server)
     m3u8.main()
