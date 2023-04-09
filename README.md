@@ -1,6 +1,6 @@
 # python-m3u8
 
-### python download m3u8 and convert to mp4.
+### python download m3u8 and convert to mp4. 添加代理, 解密视频, 下载m3u8
 
 #### 1 获取ts_url列表
 
