@@ -1,6 +1,6 @@
 import os
 import re
-import shutil
+import tempfile
 import uuid
 
 from Crypto.Cipher import AES
@@ -12,13 +12,13 @@ from tqdm import tqdm
 
 
 class M3U8(object):
-    def __init__(self, m3u8_url, proxy=None):
+    def __init__(self, m3u8_url, save_name=str(uuid.uuid4())[:8], proxy=None):
         self.m3u8_url = m3u8_url
-        self.temp_dir = 'temp'
+        self.save_name = save_name
+        self.proxy = proxy
+        self.session = requests.Session()
         self.is_crypt = False
         self.to_crack = None
-        self.session = requests.Session()
-        self.proxy = proxy
 
     def set_session_property(self):
         headers = {'User-Agent': UserAgent().random}
@@ -150,32 +150,35 @@ class M3U8(object):
 
     def thread_pool(self, urls: list):
         """
-        开启线程池下载ts_list
+        开启线程池
         :param urls: ts文件 url list
         :return:
         """
-        if not os.path.exists(self.temp_dir):
-            os.mkdir(self.temp_dir)
-        with tqdm(desc='Downloading', total=len(urls), unit='ts') as progress_bar:
-            with ThreadPoolExecutor(max_workers=8) as pool:
-                for ts_url in urls:
-                    number = urls.index(ts_url) + 1
-                    ts_file_name = f'{number:0>5d}.ts'
-                    ts_file_path = os.path.join(self.temp_dir, ts_file_name)
-                    future = pool.submit(self.download, url=ts_url, file_path=ts_file_path)
-                    future.add_done_callback(lambda p: progress_bar.update())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with tqdm(desc='Downloading', total=len(urls), unit='ts') as progress_bar:
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    for ts_url in urls:
+                        number = urls.index(ts_url) + 1
+                        ts_file_name = f'{number:0>5d}.ts'
+                        ts_file_path = os.path.join(temp_dir, ts_file_name)
+                        future = pool.submit(self.download, url=ts_url, file_path=ts_file_path)
+                        future.add_done_callback(lambda p: progress_bar.update())
+            self.merge_ts(temp_dir)
 
-    def merge_ts(self):
+    def merge_ts(self, temp_dir: str):
         """
         合并ts
         :return:
         """
-        ts_list = os.listdir(self.temp_dir)
+        ts_list = os.listdir(temp_dir)
         ts_list.sort()
-        output = str(uuid.uuid4())[:8] + '.mp4'
+        if self.save_name.casefold().endswith('.mp4'):
+            output = os.path.join(os.path.expanduser('~'), 'Downloads', self.save_name)
+        else:
+            output = os.path.join(os.path.expanduser('~'), 'Downloads', f'{self.save_name}.mp4')
         with open(output, 'ab+') as f:
             for ts in ts_list:
-                ts_path = os.path.join(self.temp_dir, ts)
+                ts_path = os.path.join(temp_dir, ts)
                 if self.is_crypt:
                     f.write(self.to_crack.decrypt(open(ts_path, 'rb').read()))
                 else:
@@ -185,16 +188,20 @@ class M3U8(object):
         self.set_session_property()
         ts_urls = self.get_ts_urls()
         self.thread_pool(ts_urls)
-        self.merge_ts()
-        shutil.rmtree(self.temp_dir)
+        self.session.close()
 
 
 if __name__ == '__main__':
     m3u8_link = input('m3u8 url:')
-    use_proxy = input('use proxy?(y/n):')
+    input_name = input('input save name?(y/n):')
+    if input_name == 'y' or input_name == 'Y':
+        m3u8_name = input('save name:')
+    else:
+        m3u8_name = str(uuid.uuid4())[:8]
+    use_proxy = input('use a proxy?(y/n):')
     if use_proxy == 'y' or use_proxy == 'Y':
         proxy_server = input('protocol://ip:port:')
     else:
         proxy_server = None
-    m3u8 = M3U8(m3u8_url=m3u8_link, proxy=proxy_server)
+    m3u8 = M3U8(m3u8_url=m3u8_link, save_name=m3u8_name, proxy=proxy_server)
     m3u8.main()
