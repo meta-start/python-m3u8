@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import uuid
 
 from Crypto.Cipher import AES
 from concurrent.futures import ThreadPoolExecutor
@@ -14,7 +15,6 @@ class M3U8(object):
     def __init__(self, m3u8_url, proxy=None):
         self.m3u8_url = m3u8_url
         self.temp_dir = 'temp'
-        self.output = 'm3u8.mp4'
         self.is_crypt = False
         self.to_crack = None
         self.session = requests.Session()
@@ -172,7 +172,8 @@ class M3U8(object):
         """
         ts_list = os.listdir(self.temp_dir)
         ts_list.sort()
-        with open(self.output, 'ab+') as f:
+        output = str(uuid.uuid4())[:8] + '.mp4'
+        with open(output, 'ab+') as f:
             for ts in ts_list:
                 ts_path = os.path.join(self.temp_dir, ts)
                 if self.is_crypt:
