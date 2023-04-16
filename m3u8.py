@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 
 class M3U8(object):
-    def __init__(self, m3u8_url, save_name=str(uuid.uuid4())[:8], proxy=None):
+    def __init__(self, m3u8_url, save_name=str(uuid.uuid4())[:8], proxy=False):
         self.m3u8_url = m3u8_url
         self.save_name = save_name
         self.proxy = proxy
@@ -24,10 +24,7 @@ class M3U8(object):
         headers = {'User-Agent': UserAgent().random}
         self.session.headers.update(headers)
         if self.proxy:
-            proxy_list = self.proxy.split('://')
-            protocol = proxy_list[0]
-            ip_port = proxy_list[1]
-            proxies = {f'{protocol}': f'{protocol}://{ip_port}'}
+            proxies = {'http': '127.0.0.1:10809'}
             self.session.proxies.update(proxies)
 
     def get_urls(self, url: str) -> tuple:
@@ -47,7 +44,7 @@ class M3U8(object):
                 urls.append(line)
             elif line.endswith('.m3u8'):
                 urls.append(line)
-            elif line.startswith('#EXT-X-KEY'):
+            elif line.startswith('#EXT-X-KEY:METHOD=AES-128'):
                 keys.append(line)
         return urls, keys
 
@@ -55,7 +52,7 @@ class M3U8(object):
         """
         判断是否为加密视频
         :param m3u8_url: m3u8_url
-        :param keys: #EXT-X-KEY
+        :param keys: #EXT-X-KEY:METHOD=AES-128
         :return:
         """
         if keys:
@@ -111,6 +108,18 @@ class M3U8(object):
             m3u8_url = self.m3u8_url
             m3u8_resp_tuple = resp_tuple
             ts_list = urls
+        # 统计每个url的长度
+        lengths = [len(s) for s in ts_list]
+        # 统计每个长度所对应的个数
+        count_dict = {}
+        for length in lengths:
+            if length in count_dict:
+                count_dict[length] += 1
+            else:
+                count_dict[length] = 1
+        if len(count_dict) > 1:
+            exclude_length = min(count_dict, key=lambda k: count_dict[k])
+            ts_list = [ts for ts in ts_list if len(ts) != exclude_length]
         keys = m3u8_resp_tuple[1]
         self.is_crack(m3u8_url, keys)
         ts0 = ts_list[0]
@@ -200,8 +209,8 @@ if __name__ == '__main__':
         m3u8_name = str(uuid.uuid4())[:8]
     use_proxy = input('use a proxy?(y/n):')
     if use_proxy == 'y' or use_proxy == 'Y':
-        proxy_server = input('protocol://ip:port:')
+        proxy_server = True
     else:
-        proxy_server = None
+        proxy_server = False
     m3u8 = M3U8(m3u8_url=m3u8_link, save_name=m3u8_name, proxy=proxy_server)
     m3u8.main()
