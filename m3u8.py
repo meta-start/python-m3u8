@@ -24,7 +24,7 @@ class M3U8(object):
         headers = {'User-Agent': UserAgent().random}
         self.session.headers.update(headers)
         if self.proxy:
-            proxies = {'http': '127.0.0.1:10809'}
+            proxies = {'http': 'http://127.0.0.1:10809'}
             self.session.proxies.update(proxies)
 
     def get_urls(self, url: str) -> tuple:
